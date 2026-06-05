@@ -18,6 +18,10 @@ sequelize.sync({ alter: false })
 // Routes
 app.use('/origin/api/login', require('./routes/authRouter.js'));
 app.use('/origin/api/user', require('./routes/userRouter.js'));
+app.use('/origin/api/product', require('./routes/productRouter.js'));
+app.use('/origin/api/department', require('./routes/departmentRouter.js'));
+app.use('/origin/api/product-type', require('./routes/productTypeRouter.js'));
+app.use('/origin/api/product-use', require('./routes/productUseRouter.js'));
 
 const PORT = process.env.PORT || 4000;
 
