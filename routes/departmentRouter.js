@@ -14,7 +14,7 @@ const routes = express.Router();
 routes.post('/', checkAuth, createDepartment);
 routes.get('/', checkAuth, getDepartments);
 routes.get('/:id', checkAuth, getDepartmentById);
-routes.put('/change-state/:id', checkAuth, changeStateDepartment);
+routes.get('/change-state/:id', checkAuth, changeStateDepartment);
 routes.put('/:id', checkAuth, updateDepartment);
 routes.delete('/:id', checkAuth, deleteDepartment);
 
