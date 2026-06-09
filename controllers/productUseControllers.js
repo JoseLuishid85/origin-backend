@@ -1,4 +1,5 @@
-const ProductUse = require('../models/ProductUse');
+
+const { Product, ProductUse } = require('../models/associations');
 
 const createProductUse = async (req, res) => {
     const { name } = req.body;
@@ -69,13 +70,12 @@ const getProductUseById = async (req, res) => {
 
 const updateProductUse = async (req, res) => {
     const { id } = req.params;
-    const { name, state } = req.body;
+    const { name } = req.body;
 
     try {
         // 1. Actualizar los datos
         await ProductUse.update({
-            name,
-            state
+            name
         }, {
             where: { id }
         });
@@ -97,20 +97,63 @@ const updateProductUse = async (req, res) => {
     }
 };
 
-const deleteProductUse = async (req, res) => {
+const changeStateProductUse = async (req, res) => {
     const { id } = req.params;
 
     try {
         // Borrado lógico deshabilitando el estado
+        const productUse = await ProductUse.findByPk(id);
+
         await ProductUse.update({
-            state: false
+            state: !productUse.state
         }, {
             where: { id }
         });
 
+        const productUseCahnged = await ProductUse.findByPk(id);
+
         res.json({
             ok: true,
-            msg: `Uso de producto con id ${id} desactivado con éxito`
+            productUse: productUseCahnged
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Error al desactivar el uso de producto'
+        });
+    }
+};
+
+const deleteProductUse = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+
+        const productUse = await ProductUse.findByPk(id);
+
+        if (!productUse) {
+            return res.status(404).json({
+                msg: `No existe un uso de producto con el id ${id}`
+            });
+        }
+
+        const productExists = await Product.findOne({
+            where: { productUseId: id }
+        });
+
+        if (productExists) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'No se puede eliminar el uso de producto porque tiene productos asociados'
+            });
+        }
+
+        await productUse.destroy();
+
+        res.json({
+            ok: true,
+            msg: `Uso de producto fue eliminado con éxito`
         });
     } catch (error) {
         console.error(error);
@@ -126,5 +169,6 @@ module.exports = {
     getProductUses,
     getProductUseById,
     updateProductUse,
+    changeStateProductUse,
     deleteProductUse,
 };

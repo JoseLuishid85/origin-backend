@@ -1,4 +1,4 @@
-const Department = require('../models/Department');
+const { Product, Department } = require('../models/associations');
 
 const createDepartment = async (req, res) => {
     const { name } = req.body;
@@ -70,13 +70,12 @@ const getDepartmentById = async (req, res) => {
 
 const updateDepartment = async (req, res) => {
     const { id } = req.params;
-    const { name, state } = req.body;
+    const { name } = req.body;
 
     try {
         // 1. Actualizar los datos del departamento
         await Department.update({
-            name,
-            state
+            name
         }, {
             where: { id }
         });
@@ -98,20 +97,61 @@ const updateDepartment = async (req, res) => {
     }
 };
 
-const deleteDepartment = async (req, res) => {
+const changeStateDepartment = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Borrado lógico: cambiamos 'state' a false para no romper el historial de productos
+        const department = await Department.findByPk(id);
+
         await Department.update({
-            state: false
+            state: !department.state
         }, {
             where: { id }
         });
 
+        const departmentChanged = await Department.findByPk(id);
+
         res.json({
             ok: true,
-            msg: `Departamento con id ${id} desactivado con éxito`
+            department: departmentChanged
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Error al desactivar el departamento'
+        });
+    }
+};
+
+const deleteDepartment = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const department = await Department.findByPk(id);
+
+        if (!department) {
+            return res.status(404).json({
+                msg: `No existe un departamento con el id ${id}`
+            });
+        }
+
+        const productExists = await Product.findOne({
+            where: { departmentId: id }
+        });
+
+        if (productExists) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'No se puede eliminar el departamento porque tiene productos asociados'
+            });
+        }
+
+        await department.destroy();
+
+        res.json({
+            ok: true,
+            msg: `Departamento fue eliminado con éxito`
         });
     } catch (error) {
         console.error(error);
@@ -127,5 +167,6 @@ module.exports = {
     getDepartments,
     getDepartmentById,
     updateDepartment,
+    changeStateDepartment,
     deleteDepartment,
 };
