@@ -34,9 +34,7 @@ const createDepartment = async (req, res) => {
 const getDepartments = async (req, res) => {
     try {
         // Traemos solo los departamentos activos (state: true)
-        const departments = await Department.findAll({
-            where: { state: true }
-        });
+        const departments = await Department.findAll();
 
         res.json(departments);
     } catch (error) {

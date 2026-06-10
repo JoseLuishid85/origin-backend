@@ -34,9 +34,7 @@ const createProductUse = async (req, res) => {
 const getProductUses = async (req, res) => {
     try {
         // Traemos solo los usos de producto activos
-        const productUses = await ProductUse.findAll({
-            where: { state: true }
-        });
+        const productUses = await ProductUse.findAll();
 
         res.json(productUses);
     } catch (error) {

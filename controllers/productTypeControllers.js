@@ -1,4 +1,4 @@
-const ProductType = require('../models/ProductType');
+const { Product, ProductType } = require('../models/associations');
 
 const createProductType = async (req, res) => {
     const { name } = req.body;
@@ -33,9 +33,7 @@ const createProductType = async (req, res) => {
 const getProductTypes = async (req, res) => {
     try {
         // Traemos solo los tipos de producto activos
-        const productTypes = await ProductType.findAll({
-            where: { state: true }
-        });
+        const productTypes = await ProductType.findAll();
 
         res.json(productTypes);
     } catch (error) {
@@ -69,13 +67,12 @@ const getProductTypeById = async (req, res) => {
 
 const updateProductType = async (req, res) => {
     const { id } = req.params;
-    const { name, state } = req.body;
+    const { name } = req.body;
 
     try {
         // 1. Actualizar los datos
         await ProductType.update({
-            name,
-            state
+            name
         }, {
             where: { id }
         });
@@ -97,26 +94,67 @@ const updateProductType = async (req, res) => {
     }
 };
 
-const deleteProductType = async (req, res) => {
+const changeStateProductType = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Borrado lógico deshabilitando el estado
-        await ProductType.update({
-            state: false
+        const productType = await ProductType.findByPk(id);
+
+        await productType.update({
+            state: !productType.state
         }, {
             where: { id }
         });
 
+        const productTypeChanged = await ProductType.findByPk(id);
+
         res.json({
             ok: true,
-            msg: `Tipo de producto con id ${id} desactivado con éxito`
+            productType: productTypeChanged
         });
     } catch (error) {
         console.error(error);
         res.status(500).json({
             ok: false,
-            msg: 'Error al desactivar el tipo de producto'
+            msg: 'Error al procesar datos'
+        });
+    }
+};
+
+const deleteProductType = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const productType = await ProductType.findByPk(id);
+
+        if (!productType) {
+            return res.status(404).json({
+                msg: `No existe un tipo de producto con el id ${id}`
+            });
+        }
+
+        const productExists = await Product.findOne({
+            where: { productTypeId: id }
+        });
+
+        if (productExists) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'No se puede eliminar el tipo de producto porque tiene productos asociados'
+            });
+        }
+
+        await productType.destroy();
+
+        res.json({
+            ok: true,
+            msg: `El tipo de producto fue eliminado con éxito`
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Error al desactivar el departamento'
         });
     }
 };
@@ -125,6 +163,7 @@ module.exports = {
     createProductType,
     getProductTypes,
     getProductTypeById,
+    changeStateProductType,
     updateProductType,
     deleteProductType,
 };
