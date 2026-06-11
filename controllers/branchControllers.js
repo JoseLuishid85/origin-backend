@@ -30,7 +30,12 @@ const createBranch = async (req, res) => {
 
 const getBranches = async (req, res) => {
     try {
-        const branches = await Branch.findAll();
+        const branches = await Branch.findAll({
+            include: [{
+                model: Deposit,
+                as: 'deposits'
+            }]
+        });
 
         res.json(branches);
     } catch (error) {
@@ -45,7 +50,12 @@ const getBranchById = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const branch = await Branch.findByPk(id);
+        const branch = await Branch.findByPk(id, {
+            include: [{
+                model: Deposit,
+                as: 'deposits'
+            }]
+        });
 
         if (!branch) {
             return res.status(404).json({
