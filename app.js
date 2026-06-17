@@ -24,6 +24,8 @@ app.use('/origin/api/product-type', require('./routes/productTypeRouter.js'));
 app.use('/origin/api/product-use', require('./routes/productUseRouter.js'));
 app.use('/origin/api/branch', require('./routes/branchRouter.js'));
 app.use('/origin/api/deposit', require('./routes/depositRouter.js'));
+app.use('/origin/api/inventory', require('./routes/inventoryRouter.js'));
+app.use('/origin/api/transfer', require('./routes/transferRouter.js'));
 
 const PORT = process.env.PORT || 4000;
 
