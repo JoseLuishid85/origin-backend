@@ -167,6 +167,62 @@ const getInventorySummaryByBranch = async (req, res) => {
     }
 };
 
+const getCriticalStock = async (req, res) => {
+    try {
+        const branches = await Branch.findAll({ where: { state: true }, attributes: ['id', 'name'] });
+
+        const results = [];
+
+        for (const branch of branches) {
+            const mainDeposit = await Deposit.findOne({ where: { branchId: branch.id, main: true } });
+            if (!mainDeposit) continue;
+
+            const totalStocks = await Inventory.findAll({
+                where: { branchId: branch.id, state: true },
+                attributes: [
+                    'productId',
+                    [sequelize.fn('SUM', sequelize.col('stock')), 'totalStock']
+                ],
+                group: ['productId']
+            });
+
+            const stockMap = {};
+            totalStocks.forEach(item => {
+                stockMap[item.productId] = parseInt(item.getDataValue('totalStock'));
+            });
+
+            const mainInventories = await Inventory.findAll({
+                where: { depositId: mainDeposit.id, state: true },
+                include: [
+                    { model: Product, as: 'product', attributes: ['id', 'name', 'packageType'] }
+                ]
+            });
+
+            for (const inv of mainInventories) {
+                const totalStock = stockMap[inv.productId] || 0;
+                if (inv.stockMin > 0 && totalStock <= inv.stockMin) {
+                    results.push({
+                        productId: inv.productId,
+                        productName: inv.product.name,
+                        packageType: inv.product.packageType,
+                        branchId: branch.id,
+                        branchName: branch.name,
+                        totalStock,
+                        stockMin: inv.stockMin,
+                    });
+                }
+            }
+        }
+
+        results.sort((a, b) => (a.totalStock / (a.stockMin || 1)) - (b.totalStock / (b.stockMin || 1)));
+
+        res.json(results);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: "Error al obtener productos en estado crítico" });
+    }
+};
+
 const updateInventory = async (req, res) => {
     const { id } = req.params;
     const { stock, stockMin, stockOrder } = req.body;
@@ -238,6 +294,7 @@ module.exports = {
     getInventoryById,
     getInventoryByBranch,
     getInventorySummaryByBranch,
+    getCriticalStock,
     updateInventory,
     changeStateInventory,
     deleteInventory

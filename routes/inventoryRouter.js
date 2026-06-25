@@ -6,6 +6,7 @@ const {
     getInventoryById,
     getInventoryByBranch,
     getInventorySummaryByBranch,
+    getCriticalStock,
     updateInventory,
     changeStateInventory,
     deleteInventory
@@ -15,6 +16,7 @@ const routes = express.Router();
 
 routes.post('/', checkAuth, createInventory);
 routes.get('/', checkAuth, getInventories);
+routes.get('/critical', checkAuth, getCriticalStock);
 routes.get('/branch/:branchId', checkAuth, getInventoryByBranch);
 routes.get('/branch/:branchId/summary', checkAuth, getInventorySummaryByBranch);
 routes.get('/change-state/:id', checkAuth, changeStateInventory);

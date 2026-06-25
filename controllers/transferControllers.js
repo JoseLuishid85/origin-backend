@@ -150,6 +150,29 @@ const getTransfers = async (req, res) => {
     }
 };
 
+const getRecentTransfers = async (req, res) => {
+    try {
+        const transfers = await Transfer.findAll({
+            where: { state: true },
+            include: [
+                { model: Branch, as: 'branchOrigin', attributes: ['id', 'name'] },
+                { model: Branch, as: 'branchDest', attributes: ['id', 'name'] },
+                {
+                    model: TransferDetail, as: 'details',
+                    include: [{ model: Product, as: 'product', attributes: ['id', 'name'] }]
+                }
+            ],
+            order: [['createdAt', 'DESC']],
+            limit: 15
+        });
+
+        res.json(transfers);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: "Error al obtener los traslados recientes" });
+    }
+};
+
 const getTransferById = async (req, res) => {
     const { id } = req.params;
 
@@ -254,6 +277,7 @@ const deleteTransfer = async (req, res) => {
 module.exports = {
     createTransfer,
     getTransfers,
+    getRecentTransfers,
     getTransferById,
     getTransfersByBranch,
     changeStateTransfer,
