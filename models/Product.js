@@ -21,6 +21,16 @@ Product.init({
         type: DataTypes.STRING(50), // 1, 1KG, 123, XXML, etc.
         allowNull: true
     },
+    cost: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        defaultValue: 0
+    },
+    price: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        defaultValue: 0
+    },
     state: {
         type: DataTypes.BOOLEAN,
         defaultValue: true

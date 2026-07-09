@@ -13,6 +13,8 @@ const createProduct = async (req, res) => {
             name: data.name,
             packageType: data.packageType,
             packageQuantity: data.packageQuantity,
+            cost: data.cost,
+            price: data.price,
             departmentId: data.departmentId,
             productTypeId: data.productTypeId,
             productUseId: data.productUseId
@@ -74,6 +76,8 @@ const updateProduct = async (req, res) => {
             name: data.name,
             packageType: data.packageType,
             packageQuantity: data.packageQuantity,
+            cost: data.cost,
+            price: data.price,
             departmentId: data.departmentId,
             productTypeId: data.productTypeId,
             productUseId: data.productUseId,
@@ -120,7 +124,7 @@ const getProductInventoryByBranch = async (req, res) => {
         const inventories = await Inventory.findAll({
             where: { branchId, state: true },
             include: [
-                { model: Product, as: 'product', attributes: ['id', 'name', 'packageType', 'packageQuantity'] },
+                { model: Product, as: 'product', attributes: ['id', 'name', 'packageType', 'packageQuantity', 'cost', 'price'] },
                 { model: Deposit, as: 'deposit', attributes: ['id', 'name', 'main'] }
             ]
         });

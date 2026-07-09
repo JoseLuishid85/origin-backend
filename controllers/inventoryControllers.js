@@ -97,7 +97,7 @@ const getInventoryByBranch = async (req, res) => {
         const inventories = await Inventory.findAll({
             where: { branchId, state: true },
             include: [
-                { model: Product, as: 'product', attributes: ['id', 'name', 'packageType', 'packageQuantity'] },
+                { model: Product, as: 'product', attributes: ['id', 'name', 'packageType', 'packageQuantity', 'cost', 'price'] },
                 { model: Deposit, as: 'deposit', attributes: ['id', 'name', 'main'] }
             ]
         });
