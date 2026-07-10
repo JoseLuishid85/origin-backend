@@ -26,6 +26,8 @@ app.use('/origin/api/branch', require('./routes/branchRouter.js'));
 app.use('/origin/api/deposit', require('./routes/depositRouter.js'));
 app.use('/origin/api/inventory', require('./routes/inventoryRouter.js'));
 app.use('/origin/api/transfer', require('./routes/transferRouter.js'));
+app.use('/origin/api/equipment', require('./routes/equipmentRouter.js'));
+app.use('/origin/api/branch-equipment', require('./routes/branchEquipmentRouter.js'));
 
 const PORT = process.env.PORT || 4000;
 

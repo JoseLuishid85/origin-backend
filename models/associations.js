@@ -7,6 +7,8 @@ const Deposit = require('./Deposit');
 const Inventory = require('./Inventory');
 const Transfer = require('./Transfer');
 const TransferDetail = require('./TransferDetail');
+const Equipment = require('./Equipment');
+const BranchEquipment = require('./BranchEquipment');
 
 // --- Relaciones de Uno a Muchos (1:N) ---
 
@@ -54,6 +56,18 @@ TransferDetail.belongsTo(Transfer, { foreignKey: 'transferId', as: 'transfer' })
 Product.hasMany(TransferDetail, { foreignKey: 'productId', as: 'transferDetails' });
 TransferDetail.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 
+// Un equipo tiene muchos detalles de traslado
+Equipment.hasMany(TransferDetail, { foreignKey: 'equipmentId', as: 'transferDetails' });
+TransferDetail.belongsTo(Equipment, { foreignKey: 'equipmentId', as: 'equipment' });
+
+// Una sucursal tiene su propio inventario de equipos
+Branch.hasMany(BranchEquipment, { foreignKey: 'branchId', as: 'equipmentStocks' });
+BranchEquipment.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
+
+// Un equipo tiene muchos registros de inventario por sucursal
+Equipment.hasMany(BranchEquipment, { foreignKey: 'equipmentId', as: 'branchStocks' });
+BranchEquipment.belongsTo(Equipment, { foreignKey: 'equipmentId', as: 'equipment' });
+
 module.exports = {
     Product,
     Department,
@@ -63,5 +77,7 @@ module.exports = {
     Deposit,
     Inventory,
     Transfer,
-    TransferDetail
+    TransferDetail,
+    Equipment,
+    BranchEquipment
 };

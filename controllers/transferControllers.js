@@ -1,18 +1,37 @@
-const { Transfer, TransferDetail, Branch, Deposit, Inventory, Product } = require('../models/associations');
+const { Transfer, TransferDetail, Branch, Deposit, Inventory, Product, Equipment, BranchEquipment } = require('../models/associations');
 const sequelize = require('../config/database');
+
+const DETAIL_INCLUDE = {
+    model: TransferDetail, as: 'details',
+    include: [
+        { model: Product, as: 'product', attributes: ['id', 'name'] },
+        { model: Equipment, as: 'equipment', attributes: ['id', 'name', 'type'] }
+    ]
+};
 
 const createTransfer = async (req, res) => {
     const { branchIdOrigin, branchIdDest, date, observations, details } = req.body;
 
     if (!details || !details.length) {
-        return res.status(400).json({ msg: 'El traslado debe contener al menos un producto' });
+        return res.status(400).json({ msg: 'El traslado debe contener al menos un producto o equipo' });
     }
 
     if (branchIdOrigin === branchIdDest) {
         return res.status(400).json({ msg: 'La sucursal origen y destino no pueden ser la misma' });
     }
 
+    for (const item of details) {
+        if (Boolean(item.productId) === Boolean(item.equipmentId)) {
+            return res.status(400).json({ msg: 'Cada línea del traslado debe tener un producto o un equipo, no ambos' });
+        }
+    }
+
+    const productLines = details.filter(d => d.productId);
+    const equipmentLines = details.filter(d => d.equipmentId);
+
     const transaction = await sequelize.transaction();
+
+    await TransferDetail.sync();
 
     try {
         const originBranch = await Branch.findByPk(branchIdOrigin);
@@ -27,40 +46,70 @@ const createTransfer = async (req, res) => {
             return res.status(400).json({ msg: `No existe una sucursal destino con el id ${branchIdDest}` });
         }
 
-        const originDeposit = await Deposit.findOne({ where: { branchId: branchIdOrigin, main: true } });
-        if (!originDeposit) {
-            await transaction.rollback();
-            return res.status(400).json({ msg: 'La sucursal origen no tiene un depósito principal asignado' });
-        }
+        let originDeposit, destDeposit;
 
-        const destDeposit = await Deposit.findOne({ where: { branchId: branchIdDest, main: true } });
-        if (!destDeposit) {
-            await transaction.rollback();
-            return res.status(400).json({ msg: 'La sucursal destino no tiene un depósito principal asignado' });
-        }
-
-        for (const item of details) {
-            const product = await Product.findByPk(item.productId);
-            if (!product) {
+        if (productLines.length) {
+            originDeposit = await Deposit.findOne({ where: { branchId: branchIdOrigin, main: true } });
+            if (!originDeposit) {
                 await transaction.rollback();
-                return res.status(400).json({ msg: `No existe un producto con el id ${item.productId}` });
+                return res.status(400).json({ msg: 'La sucursal origen no tiene un depósito principal asignado' });
             }
 
-            const originInventory = await Inventory.findOne({
-                where: { productId: item.productId, depositId: originDeposit.id }
+            destDeposit = await Deposit.findOne({ where: { branchId: branchIdDest, main: true } });
+            if (!destDeposit) {
+                await transaction.rollback();
+                return res.status(400).json({ msg: 'La sucursal destino no tiene un depósito principal asignado' });
+            }
+
+            for (const item of productLines) {
+                const product = await Product.findByPk(item.productId);
+                if (!product) {
+                    await transaction.rollback();
+                    return res.status(400).json({ msg: `No existe un producto con el id ${item.productId}` });
+                }
+
+                const originInventory = await Inventory.findOne({
+                    where: { productId: item.productId, depositId: originDeposit.id }
+                });
+
+                if (!originInventory) {
+                    await transaction.rollback();
+                    return res.status(400).json({
+                        msg: `El producto "${product.name}" no tiene inventario en el depósito principal de la sucursal origen`
+                    });
+                }
+
+                if (originInventory.stock < item.quantity) {
+                    await transaction.rollback();
+                    return res.status(400).json({
+                        msg: `Stock insuficiente para "${product.name}". Disponible: ${originInventory.stock}, solicitado: ${item.quantity}`
+                    });
+                }
+            }
+        }
+
+        for (const item of equipmentLines) {
+            const equipment = await Equipment.findByPk(item.equipmentId);
+            if (!equipment) {
+                await transaction.rollback();
+                return res.status(400).json({ msg: `No existe un equipo con el id ${item.equipmentId}` });
+            }
+
+            const originStock = await BranchEquipment.findOne({
+                where: { equipmentId: item.equipmentId, branchId: branchIdOrigin }
             });
 
-            if (!originInventory) {
+            if (!originStock) {
                 await transaction.rollback();
                 return res.status(400).json({
-                    msg: `El producto "${product.name}" no tiene inventario en el depósito principal de la sucursal origen`
+                    msg: `El equipo "${equipment.name}" no tiene inventario en la sucursal origen`
                 });
             }
 
-            if (originInventory.stock < item.quantity) {
+            if (originStock.quantity < item.quantity) {
                 await transaction.rollback();
                 return res.status(400).json({
-                    msg: `Stock insuficiente para "${product.name}". Disponible: ${originInventory.stock}, solicitado: ${item.quantity}`
+                    msg: `Stock insuficiente para el equipo "${equipment.name}". Disponible: ${originStock.quantity}, solicitado: ${item.quantity}`
                 });
             }
         }
@@ -69,7 +118,7 @@ const createTransfer = async (req, res) => {
             branchIdOrigin, branchIdDest, date, observations
         }, { transaction });
 
-        for (const item of details) {
+        for (const item of productLines) {
             await TransferDetail.create({
                 transferId: newTransfer.id,
                 productId: item.productId,
@@ -104,16 +153,45 @@ const createTransfer = async (req, res) => {
             }
         }
 
+        for (const item of equipmentLines) {
+            await TransferDetail.create({
+                transferId: newTransfer.id,
+                equipmentId: item.equipmentId,
+                quantity: item.quantity
+            }, { transaction });
+
+            await BranchEquipment.decrement('quantity', {
+                by: item.quantity,
+                where: { equipmentId: item.equipmentId, branchId: branchIdOrigin },
+                transaction
+            });
+
+            const destEquipmentStock = await BranchEquipment.findOne({
+                where: { equipmentId: item.equipmentId, branchId: branchIdDest }
+            });
+
+            if (destEquipmentStock) {
+                await BranchEquipment.increment('quantity', {
+                    by: item.quantity,
+                    where: { equipmentId: item.equipmentId, branchId: branchIdDest },
+                    transaction
+                });
+            } else {
+                await BranchEquipment.create({
+                    equipmentId: item.equipmentId,
+                    branchId: branchIdDest,
+                    quantity: item.quantity
+                }, { transaction });
+            }
+        }
+
         await transaction.commit();
 
         const transfer = await Transfer.findByPk(newTransfer.id, {
             include: [
                 { model: Branch, as: 'branchOrigin', attributes: ['id', 'name'] },
                 { model: Branch, as: 'branchDest', attributes: ['id', 'name'] },
-                {
-                    model: TransferDetail, as: 'details',
-                    include: [{ model: Product, as: 'product', attributes: ['id', 'name'] }]
-                }
+                DETAIL_INCLUDE
             ]
         });
 
@@ -135,10 +213,7 @@ const getTransfers = async (req, res) => {
             include: [
                 { model: Branch, as: 'branchOrigin', attributes: ['id', 'name'] },
                 { model: Branch, as: 'branchDest', attributes: ['id', 'name'] },
-                {
-                    model: TransferDetail, as: 'details',
-                    include: [{ model: Product, as: 'product', attributes: ['id', 'name'] }]
-                }
+                DETAIL_INCLUDE
             ],
             order: [['date', 'DESC']]
         });
@@ -157,10 +232,7 @@ const getRecentTransfers = async (req, res) => {
             include: [
                 { model: Branch, as: 'branchOrigin', attributes: ['id', 'name'] },
                 { model: Branch, as: 'branchDest', attributes: ['id', 'name'] },
-                {
-                    model: TransferDetail, as: 'details',
-                    include: [{ model: Product, as: 'product', attributes: ['id', 'name'] }]
-                }
+                DETAIL_INCLUDE
             ],
             order: [['createdAt', 'DESC']],
             limit: 15
@@ -181,10 +253,7 @@ const getTransferById = async (req, res) => {
             include: [
                 { model: Branch, as: 'branchOrigin', attributes: ['id', 'name'] },
                 { model: Branch, as: 'branchDest', attributes: ['id', 'name'] },
-                {
-                    model: TransferDetail, as: 'details',
-                    include: [{ model: Product, as: 'product', attributes: ['id', 'name'] }]
-                }
+                DETAIL_INCLUDE
             ]
         });
 
@@ -220,10 +289,7 @@ const getTransfersByBranch = async (req, res) => {
             include: [
                 { model: Branch, as: 'branchOrigin', attributes: ['id', 'name'] },
                 { model: Branch, as: 'branchDest', attributes: ['id', 'name'] },
-                {
-                    model: TransferDetail, as: 'details',
-                    include: [{ model: Product, as: 'product', attributes: ['id', 'name'] }]
-                }
+                DETAIL_INCLUDE
             ],
             order: [['date', 'DESC']]
         });

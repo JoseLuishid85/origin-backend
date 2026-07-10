@@ -15,7 +15,11 @@ TransferDetail.init({
     },
     productId: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: true
+    },
+    equipmentId: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     },
     quantity: {
         type: DataTypes.INTEGER,
