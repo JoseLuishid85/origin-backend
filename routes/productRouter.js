@@ -5,6 +5,7 @@ const {
     getProducts,
     getProductById,
     updateProduct,
+    updateProductPricing,
     deleteProduct,
     getProductInventoryByBranch
 } = require('../controllers/productControllers.js');
@@ -16,6 +17,7 @@ routes.get('/', checkAuth, getProducts);
 routes.get('/inventory/branch/:branchId', checkAuth, getProductInventoryByBranch);
 routes.get('/:id', checkAuth, getProductById);
 routes.put('/:id', checkAuth, updateProduct);
+routes.put('/:id/pricing', checkAuth, updateProductPricing);
 routes.delete('/:id', checkAuth, deleteProduct); // Endpoint Delete agregado
 
 module.exports = routes;

@@ -101,6 +101,26 @@ const updateProduct = async (req, res) => {
     }
 };
 
+const updateProductPricing = async (req, res) => {
+    const { id } = req.params;
+    const { cost, price } = req.body;
+    try {
+        const product = await Product.findByPk(id);
+        if (!product) {
+            return res.status(404).json({ msg: `No existe un producto con el id ${id}` });
+        }
+
+        await Product.update({ cost, price }, { where: { id } });
+
+        const updatedProduct = await Product.findByPk(id);
+
+        res.json({ ok: true, product: updatedProduct });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ ok: false, msg: 'Error al actualizar el costo/precio' });
+    }
+};
+
 const deleteProduct = async (req, res) => {
     const { id } = req.params;
     try {
@@ -175,6 +195,7 @@ module.exports = {
     getProducts,
     getProductById,
     updateProduct,
+    updateProductPricing,
     deleteProduct,
     getProductInventoryByBranch
 };
