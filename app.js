@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config({ quiet: true });
 const sequelize = require('./config/database');
 
@@ -9,6 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Sync
 sequelize.sync({ alter: false })
@@ -28,6 +30,12 @@ app.use('/origin/api/inventory', require('./routes/inventoryRouter.js'));
 app.use('/origin/api/transfer', require('./routes/transferRouter.js'));
 app.use('/origin/api/equipment', require('./routes/equipmentRouter.js'));
 app.use('/origin/api/branch-equipment', require('./routes/branchEquipmentRouter.js'));
+app.use('/origin/api/mobile-stand', require('./routes/mobileStandRouter.js'));
+app.use('/origin/api/portion', require('./routes/portionRouter.js'));
+app.use('/origin/api/menu-product', require('./routes/menuProductRouter.js'));
+app.use('/origin/api/menu-product-portion', require('./routes/menuProductPortionRouter.js'));
+app.use('/origin/api/mobile-stand-portion', require('./routes/mobileStandPortionRouter.js'));
+app.use('/origin/api/portion-supply', require('./routes/portionSupplyRouter.js'));
 
 const PORT = process.env.PORT || 4000;
 

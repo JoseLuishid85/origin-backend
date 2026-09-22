@@ -9,6 +9,13 @@ const Transfer = require('./Transfer');
 const TransferDetail = require('./TransferDetail');
 const Equipment = require('./Equipment');
 const BranchEquipment = require('./BranchEquipment');
+const MobileStand = require('./MobileStand');
+const Portion = require('./Portion');
+const MenuProduct = require('./MenuProduct');
+const MenuProductPortion = require('./MenuProductPortion');
+const MobileStandPortion = require('./MobileStandPortion');
+const PortionSupply = require('./PortionSupply');
+const PortionSupplyDetail = require('./PortionSupplyDetail');
 
 // --- Relaciones de Uno a Muchos (1:N) ---
 
@@ -68,6 +75,36 @@ BranchEquipment.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
 Equipment.hasMany(BranchEquipment, { foreignKey: 'equipmentId', as: 'branchStocks' });
 BranchEquipment.belongsTo(Equipment, { foreignKey: 'equipmentId', as: 'equipment' });
 
+// --- Stand Móvil: menú, porciones y abastecimiento ---
+
+// Un producto del menú tiene muchos ítems de receta
+MenuProduct.hasMany(MenuProductPortion, { foreignKey: 'menuProductId', as: 'recipeItems' });
+MenuProductPortion.belongsTo(MenuProduct, { foreignKey: 'menuProductId', as: 'menuProduct' });
+
+// Una porción participa en muchas recetas de productos del menú
+Portion.hasMany(MenuProductPortion, { foreignKey: 'portionId', as: 'menuProductLinks' });
+MenuProductPortion.belongsTo(Portion, { foreignKey: 'portionId', as: 'portion' });
+
+// Un stand móvil tiene su propio inventario de porciones
+MobileStand.hasMany(MobileStandPortion, { foreignKey: 'mobileStandId', as: 'portionStocks' });
+MobileStandPortion.belongsTo(MobileStand, { foreignKey: 'mobileStandId', as: 'mobileStand' });
+
+// Una porción tiene muchos registros de inventario por stand
+Portion.hasMany(MobileStandPortion, { foreignKey: 'portionId', as: 'standStocks' });
+MobileStandPortion.belongsTo(Portion, { foreignKey: 'portionId', as: 'portion' });
+
+// Un stand móvil tiene muchos abastecimientos de porciones
+MobileStand.hasMany(PortionSupply, { foreignKey: 'mobileStandId', as: 'portionSupplies' });
+PortionSupply.belongsTo(MobileStand, { foreignKey: 'mobileStandId', as: 'mobileStand' });
+
+// Un abastecimiento tiene muchos detalles
+PortionSupply.hasMany(PortionSupplyDetail, { foreignKey: 'portionSupplyId', as: 'details' });
+PortionSupplyDetail.belongsTo(PortionSupply, { foreignKey: 'portionSupplyId', as: 'portionSupply' });
+
+// Una porción tiene muchos detalles de abastecimiento
+Portion.hasMany(PortionSupplyDetail, { foreignKey: 'portionId', as: 'supplyDetails' });
+PortionSupplyDetail.belongsTo(Portion, { foreignKey: 'portionId', as: 'portion' });
+
 module.exports = {
     Product,
     Department,
@@ -79,5 +116,12 @@ module.exports = {
     Transfer,
     TransferDetail,
     Equipment,
-    BranchEquipment
+    BranchEquipment,
+    MobileStand,
+    Portion,
+    MenuProduct,
+    MenuProductPortion,
+    MobileStandPortion,
+    PortionSupply,
+    PortionSupplyDetail
 };
