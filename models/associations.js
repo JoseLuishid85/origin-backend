@@ -16,6 +16,12 @@ const MenuProductPortion = require('./MenuProductPortion');
 const MobileStandPortion = require('./MobileStandPortion');
 const PortionSupply = require('./PortionSupply');
 const PortionSupplyDetail = require('./PortionSupplyDetail');
+const Client = require('./Client');
+const Invoice = require('./Invoice');
+const InvoiceDetail = require('./InvoiceDetail');
+const InvoicePayment = require('./InvoicePayment');
+const InvoiceDetailPortion = require('./InvoiceDetailPortion');
+const User = require('./User');
 
 // --- Relaciones de Uno a Muchos (1:N) ---
 
@@ -105,6 +111,40 @@ PortionSupplyDetail.belongsTo(PortionSupply, { foreignKey: 'portionSupplyId', as
 Portion.hasMany(PortionSupplyDetail, { foreignKey: 'portionId', as: 'supplyDetails' });
 PortionSupplyDetail.belongsTo(Portion, { foreignKey: 'portionId', as: 'portion' });
 
+// --- Stand Móvil: facturación ---
+
+// Un stand móvil tiene muchas facturas
+MobileStand.hasMany(Invoice, { foreignKey: 'mobileStandId', as: 'invoices' });
+Invoice.belongsTo(MobileStand, { foreignKey: 'mobileStandId', as: 'mobileStand' });
+
+// Un cliente tiene muchas facturas
+Client.hasMany(Invoice, { foreignKey: 'clientId', as: 'invoices' });
+Invoice.belongsTo(Client, { foreignKey: 'clientId', as: 'client' });
+
+// Un usuario emite muchas facturas
+User.hasMany(Invoice, { foreignKey: 'userId', as: 'invoices' });
+Invoice.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// Una factura tiene muchos detalles
+Invoice.hasMany(InvoiceDetail, { foreignKey: 'invoiceId', as: 'details' });
+InvoiceDetail.belongsTo(Invoice, { foreignKey: 'invoiceId', as: 'invoice' });
+
+// Una línea de factura descuenta varias porciones (receta + ajustes)
+InvoiceDetail.hasMany(InvoiceDetailPortion, { foreignKey: 'invoiceDetailId', as: 'portionItems' });
+InvoiceDetailPortion.belongsTo(InvoiceDetail, { foreignKey: 'invoiceDetailId', as: 'invoiceDetail' });
+
+// Una porción aparece en muchas líneas de factura
+Portion.hasMany(InvoiceDetailPortion, { foreignKey: 'portionId', as: 'invoiceDetailPortions' });
+InvoiceDetailPortion.belongsTo(Portion, { foreignKey: 'portionId', as: 'portion' });
+
+// Una factura se paga con uno o varios métodos de pago
+Invoice.hasMany(InvoicePayment, { foreignKey: 'invoiceId', as: 'payments' });
+InvoicePayment.belongsTo(Invoice, { foreignKey: 'invoiceId', as: 'invoice' });
+
+// Un producto del menú aparece en muchos detalles de factura
+MenuProduct.hasMany(InvoiceDetail, { foreignKey: 'menuProductId', as: 'invoiceDetails' });
+InvoiceDetail.belongsTo(MenuProduct, { foreignKey: 'menuProductId', as: 'menuProduct' });
+
 module.exports = {
     Product,
     Department,
@@ -123,5 +163,11 @@ module.exports = {
     MenuProductPortion,
     MobileStandPortion,
     PortionSupply,
-    PortionSupplyDetail
+    PortionSupplyDetail,
+    Client,
+    Invoice,
+    InvoiceDetail,
+    InvoicePayment,
+    InvoiceDetailPortion,
+    User
 };

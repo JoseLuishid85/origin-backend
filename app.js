@@ -36,6 +36,8 @@ app.use('/origin/api/menu-product', require('./routes/menuProductRouter.js'));
 app.use('/origin/api/menu-product-portion', require('./routes/menuProductPortionRouter.js'));
 app.use('/origin/api/mobile-stand-portion', require('./routes/mobileStandPortionRouter.js'));
 app.use('/origin/api/portion-supply', require('./routes/portionSupplyRouter.js'));
+app.use('/origin/api/client', require('./routes/clientRouter.js'));
+app.use('/origin/api/invoice', require('./routes/invoiceRouter.js'));
 
 const PORT = process.env.PORT || 4000;
 
