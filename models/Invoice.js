@@ -44,6 +44,15 @@ Invoice.init({
         type: DataTypes.TEXT,
         allowNull: true
     },
+    kitchenStatus: {
+        type: DataTypes.ENUM('PENDIENTE', 'ENTREGADO'), // estado del pedido en la pantalla de cocina
+        allowNull: false,
+        defaultValue: 'PENDIENTE'
+    },
+    deliveredAt: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
     state: {
         type: DataTypes.BOOLEAN, // false = anulada
         defaultValue: true

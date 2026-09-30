@@ -1,8 +1,10 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config({ quiet: true });
 const sequelize = require('./config/database');
+const { initSocket } = require('./helpers/socket');
 
 const app = express();
 
@@ -41,6 +43,10 @@ app.use('/origin/api/invoice', require('./routes/invoiceRouter.js'));
 
 const PORT = process.env.PORT || 4000;
 
-app.listen(PORT, () => {
+// Socket.IO comparte el servidor HTTP de Express (pantalla de cocina en tiempo real)
+const server = http.createServer(app);
+initSocket(server);
+
+server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

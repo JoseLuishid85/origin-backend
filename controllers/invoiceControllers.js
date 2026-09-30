@@ -5,6 +5,7 @@ const {
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 const { normalizeClient } = require('./clientControllers');
+const { emitToStand } = require('../helpers/socket');
 
 const INVOICE_INCLUDE = [
     { model: MobileStand, as: 'mobileStand', attributes: ['id', 'name'] },
@@ -252,6 +253,8 @@ const createInvoice = async (req, res) => {
 
         const invoice = await Invoice.findByPk(newInvoice.id, { include: INVOICE_INCLUDE });
 
+        emitToStand(invoice.mobileStandId, 'kitchen:new', invoice);
+
         res.status(201).json({
             msg: "Factura registrada con éxito",
             invoice
@@ -367,6 +370,8 @@ const cancelInvoice = async (req, res) => {
 
         const invoiceChanged = await Invoice.findByPk(id, { include: INVOICE_INCLUDE });
 
+        emitToStand(invoiceChanged.mobileStandId, 'kitchen:removed', { id: invoiceChanged.id });
+
         res.json({ ok: true, msg: 'Factura anulada con éxito', invoice: invoiceChanged });
     } catch (error) {
         if (!transaction.finished) await transaction.rollback();
@@ -375,7 +380,54 @@ const cancelInvoice = async (req, res) => {
     }
 };
 
+// Pedidos pendientes de entregar en cocina para un stand (más antiguos primero)
+const getKitchenOrders = async (req, res) => {
+    const { mobileStandId } = req.params;
+
+    try {
+        const invoices = await Invoice.findAll({
+            where: { mobileStandId, state: true, kitchenStatus: 'PENDIENTE' },
+            include: INVOICE_INCLUDE,
+            order: [['date', 'ASC']]
+        });
+
+        res.json(invoices);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: "Error al obtener los pedidos de cocina" });
+    }
+};
+
+// Marca el pedido como entregado y lo retira de todas las pantallas del stand
+const deliverInvoice = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const invoice = await Invoice.findByPk(id);
+        if (!invoice) {
+            return res.status(404).json({ msg: `No existe una factura con el id ${id}` });
+        }
+        if (!invoice.state) {
+            return res.status(400).json({ msg: 'La factura se encuentra anulada' });
+        }
+        if (invoice.kitchenStatus === 'ENTREGADO') {
+            return res.status(400).json({ msg: 'El pedido ya fue entregado' });
+        }
+
+        await invoice.update({ kitchenStatus: 'ENTREGADO', deliveredAt: new Date() });
+
+        emitToStand(invoice.mobileStandId, 'kitchen:removed', { id: invoice.id });
+
+        res.json({ ok: true, msg: 'Pedido entregado', id: invoice.id });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ ok: false, msg: 'Error al marcar el pedido como entregado' });
+    }
+};
+
 module.exports = {
+    getKitchenOrders,
+    deliverInvoice,
     createInvoice,
     getInvoices,
     getInvoiceById,
