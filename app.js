@@ -12,7 +12,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-//app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Sync
 sequelize.sync({ alter: false })
@@ -21,7 +21,6 @@ sequelize.sync({ alter: false })
 
 // Routes
 app.use('/origin/api/login', require('./routes/authRouter.js'));
-/*
 app.use('/origin/api/user', require('./routes/userRouter.js'));
 app.use('/origin/api/product', require('./routes/productRouter.js'));
 app.use('/origin/api/department', require('./routes/departmentRouter.js'));
@@ -40,7 +39,7 @@ app.use('/origin/api/menu-product-portion', require('./routes/menuProductPortion
 app.use('/origin/api/mobile-stand-portion', require('./routes/mobileStandPortionRouter.js'));
 app.use('/origin/api/portion-supply', require('./routes/portionSupplyRouter.js'));
 app.use('/origin/api/client', require('./routes/clientRouter.js'));
-app.use('/origin/api/invoice', require('./routes/invoiceRouter.js'));*/
+app.use('/origin/api/invoice', require('./routes/invoiceRouter.js'));
 
 const PORT = process.env.PORT || 4000;
 
