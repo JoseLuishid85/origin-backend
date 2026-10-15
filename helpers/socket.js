@@ -7,7 +7,8 @@ let io = null;
 const standRoom = (mobileStandId) => `stand:${mobileStandId}`;
 
 const initSocket = (httpServer) => {
-    io = new Server(httpServer, { cors: { origin: '*' } });
+    // Ruta bajo /origin: en producción cPanel solo enruta ese prefijo hacia Node
+    io = new Server(httpServer, { path: '/origin/socket.io', cors: { origin: '*' } });
 
     // Solo clientes con un JWT válido pueden conectarse
     io.use((socket, next) => {
